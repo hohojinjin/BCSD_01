@@ -216,3 +216,308 @@ public class MyBall : MonoBehaviour
     }
 }
 ------------------------------------------------------------------------------------------------------------------------------------------------------------
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class MyBall : MonoBehaviour
+{
+    Rigidbody rigid;
+    void Start()
+    {
+        rigid = GetComponent<Rigidbody>(); //자신의 T타입 컴퓨넌트를 가져옴.        
+    }
+
+    // RigidBody 관련 코드는 FixedUpdate에 작성
+    void FixedUpdate()
+    {
+        float h = Input.GetAxisRaw("Horizontal");
+        float v = Input.GetAxisRaw("Vertical");
+        Vector3 vec = new Vector3(h, 0, v);
+
+        rigid.AddForce(vec, ForceMode.Impulse);
+    }
+
+    private void OnTriggerStay(Collider other)
+    {
+        if(other.name=="Cube")
+            rigid.AddForce(Vector3.up*2, ForceMode.Impulse);
+    }
+    //실제 물리적인 충돌로 발생하는 이벤트 -> Collision
+    void OnCollisionEnter(Collision collision) { }
+    void OnCollisionStay(Collision collision) { }
+    void OnCollisionExit(Collision collision) { }
+    //콜라이더 충돌로 발생하는 이벤트 -> Collider
+    void OnTriggerEnter(Collider other) { }
+    void OnTriggerStay(Collider other) { }
+    void OnTriggerExit(Collider other) { }
+}
+------------------------------------------------------------------------------------------------------------------------------------------------------
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class OtherBall : MonoBehaviour
+{
+    MeshRenderer mesh; //오브젝트의 재질 접근은 MeshRenderer을 통해서
+    Material mat;
+    void Start()
+    {
+        mesh = GetComponent<MeshRenderer>();
+        mat = mesh.material;
+    }
+    //CollisionEnter : 물리적 충돌이 시작할 때 호출되는 함수
+    private void OnCollisionEnter (Collision collision) //Collision : 충돌 정보 클래스
+    {
+        if(collision.gameObject.name == "My Ball")
+            mat.color = new Color(0, 0, 0);
+    }
+    private void OnCollisionStay(Collision collision)
+    {
+
+    }
+    private void OnCollisionExit(Collision collision) //충돌이 끝났을 때
+    {
+        if (collision.gameObject.name == "My Ball")
+            mat.color = new Color(1, 1, 1);
+    }
+}
+--------------------------------------------------------------------------------------------------------------------------------------------------------
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class MyBall : MonoBehaviour
+{
+    Rigidbody rigid;
+    void Start()
+    {
+        rigid = GetComponent<Rigidbody>(); //자신의 T타입 컴퓨넌트를 가져옴.        
+    }
+
+    // RigidBody 관련 코드는 FixedUpdate에 작성
+    void FixedUpdate()
+    {
+        float h = Input.GetAxisRaw("Horizontal");
+        float v = Input.GetAxisRaw("Vertical");
+        Vector3 vec = new Vector3(h, 0, v);
+
+        rigid.AddForce(vec, ForceMode.Impulse);
+    }
+
+    private void OnTriggerStay(Collider other)
+    {
+        if(other.name=="Cube")
+            rigid.AddForce(Vector3.up*2, ForceMode.Impulse);
+    }
+    
+    public void Jump()
+    {
+        rigid.AddForce(Vector3.up * 20, ForceMode.Impulse);
+    }
+}
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class QuestData
+{
+    public string questName;
+    public int[] npcId;
+
+    public QuestData(string name,int[]npc)//구조체 생성을 위해 매개변수 생성자를 작성
+    {
+        questName = name; 
+        npcId = npc;
+    }
+}
+------------------------------------------------------------------------------------------------------------------------------------------------------------
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class QuestManager : MonoBehaviour
+{
+    public int questId; // 지금 진행중인 퀘스트 Id
+    public int questActionIndex; // 퀴스트 대화순서 변수 생성
+    public GameObject[] questObject;
+
+    Dictionary<int, QuestData> questList;
+    void Awake()
+    {
+        questList = new Dictionary<int, QuestData>();
+        GenerateData();
+    }
+
+    // Update is called once per frame
+    void GenerateData()
+    {
+        questList.Add(10, new QuestData("마을 사람들과 대화하기.", new int[] { 1000, 2000 }));//int[]에는 해당 퀘스트에 연관된 NPC Id를 입력
+        questList.Add(20, new QuestData("호진이의 동전 찾아주기.", new int[] { 5000, 2000 }));
+        questList.Add(20, new QuestData("퀘스트 클리어 !", new int[] {0}));
+
+    }
+
+    public int GetQuestTalkIndex(int id)//Npc Id를 받고 퀘스트번호를 반환하는 함수 생성
+    {
+        return questId + questActionIndex;
+    }
+    //대화 진행을 위해 퀘스트 대화순서를 올리는 함수 생성
+    public string CheckQuest(int id) // 대화가 끝나면 증가
+    {
+        ControlObject();
+
+        if(id==questList[questId].npcId[questActionIndex])//순서에 맞게 대화 했을 때만 퀘스트 대화순서를 올리도록 작성
+        questActionIndex++;
+
+        if (questActionIndex == questList[questId].npcId.Length)//퀘스트 대화순서가 끝에 도달했을 때 퀘스트번호 증가
+            NextQuest();
+
+        return questList[questId].questName;
+    }
+    public string CheckQuest()// 오버로딩 : 매개변수에 따라 함수 호출
+    {
+        return questList[questId].questName;
+    }
+
+    void NextQuest()//다음 퀘스트를 위한 함수 생성
+    {
+        questId += 10;
+        questActionIndex = 0;
+    }
+    void ControlObject() //퀘스트 오브젝트를 관리할 함수 생성
+    {
+        switch (questId)
+        {
+            case 10: //퀘스트번호, 퀘스트 대화 순서에 따라 오브젝트를 조절
+                if (questActionIndex == 2)
+                    questObject[0].SetActive(true);
+                break;
+            case 20:// 동전을 먹었을 때
+                if (questActionIndex == 1)
+                    questObject[0].SetActive(false); // 비활성화
+                break;
+        }
+    }
+}
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.UI;
+
+public class GameManager : MonoBehaviour
+{
+    public TalkManager talkManager;
+    public QuestManager questManager;
+    public GameObject talkPanel;
+    public Image portraitImg;
+    public Text talkText;
+    public int talkIndex;
+    public GameObject scanObject;
+    public bool isAction;
+
+    void Start()
+    {
+        Debug.Log(questManager.CheckQuest()); 
+    }
+    public void Action(GameObject scanObj)
+    {
+            scanObject = scanObj;
+            ObjData objData = scanObject.GetComponent<ObjData>();
+            Talk(objData.id, objData.isNpc);
+            
+            talkPanel.SetActive(isAction);
+    }
+    void Talk(int id, bool isNpc)
+    {
+        int questTalkIndex = questManager.GetQuestTalkIndex(id);
+        string talkData = talkManager.GetTalk(id+questTalkIndex, talkIndex); //퀘스트번호 + NPC ID = 퀘스트 대화 데이터 Id
+
+        if(talkData == null)
+        {
+            isAction = false;
+            talkIndex = 0; // talkIndex는 대화가 끝날 때 0으로 초기화
+            Debug.Log(questManager.CheckQuest(id));
+            return;
+        }
+        if (isNpc)
+        {
+            talkText.text = talkData.Split(':')[0];//구분하게 되면 문자열이 아닌 배열이 됨
+
+            portraitImg.sprite = talkManager.GetPortrait(id,int.Parse(talkData.Split(':')[1]));//Parse(): 문자열을 해당 타입으로 변환하는 함수
+            portraitImg.color = new Color(1, 1, 1, 1);
+        }
+        else
+        {
+            talkText.text = talkData;
+            portraitImg.color = new Color(1, 1, 1, 0);
+        }
+        isAction = true;
+        talkIndex++;
+    }
+
+}
+----------------------------------------------------------------------------------------------------------------------------------------------------------
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class TalkManager : MonoBehaviour
+{
+    Dictionary<int, string[]> talkData;//대화 데이터를 저장한 딕셔너리 변수 생성
+    Dictionary<int, Sprite> portraitData;
+
+    public Sprite[] portraitArr; // 초상화 스프라이트를 저장할 배열 생성
+
+    void Awake()
+    {
+        talkData = new Dictionary<int, string[]>();// 초기화
+        portraitData = new Dictionary<int, Sprite>(); // 초기화
+        GenerateData();
+    }
+    void GenerateData()
+    {//Add함수를 사용하여 대화 데이터 입력 추가
+        talkData.Add(1000, new string[]{ "안녕?:0", "이 곳에 처음 왔구나?"});//구분자와 함께 초상화 Index를 문장 뒤에 추가
+        talkData.Add(2000, new string[] { "여어.:1","이 호수는 처음이지?" });
+        talkData.Add(3000, new string[] { "평범한 나무상자다." });
+        talkData.Add(4000, new string[] { "누군가 사용했던 흔적이 있는 책상이다." });
+
+        talkData.Add(10 + 1000, new string[] { "어서와.:0", "이 마을에 전설이 있어:1", "오른쪽 호수 쪽에 호진이가 알려줄거야.:0" });
+        talkData.Add(11 + 2000, new string[] { "여어.:1", "호수의 전설을 들으러 온거야?:0","일 좀 해봐!:1","동전 주워주면 돼" });
+
+        talkData.Add(20 + 1000, new string[] { "호진이의 동전?:1", "돈 흘리면 안돼!:3","나중에 한마디 해야겠어.:3" });
+        talkData.Add(20 + 2000, new string[] { "찾으면 꼭 좀 다져다 줘.:1"});
+        talkData.Add(20 + 5000, new string[] { "근처에서 돈을 찾았다." });
+        talkData.Add(21 + 2000, new string[] { "찾아줘서 고마워.:2" });
+
+        portraitData.Add(1000+0, portraitArr[0]); //표정이 4개임
+        portraitData.Add(1000 + 1, portraitArr[1]);
+        portraitData.Add(1000 + 2, portraitArr[2]);
+        portraitData.Add(1000 + 3, portraitArr[3]);
+        portraitData.Add(2000 + 0, portraitArr[4]);
+        portraitData.Add(2000 + 1, portraitArr[5]);
+        portraitData.Add(2000 + 2, portraitArr[6]);
+        portraitData.Add(2000 + 3, portraitArr[7]);
+    }
+    public string GetTalk(int id, int talkIndex) //지정된 대화 문장을 반환하는 함수 하나 생성
+    {
+        if (!talkData.ContainsKey(id))//ContainsKey(): Dictionary에 Key가 존재하는지 검사
+        {
+            if (talkIndex == talkData[id - id & 10))
+                return GetTalk(id - id % 100, talkIndex); //Get First Talk, 반한 값이 있는 재귀는 return 사용
+            else
+                return GetTalk(id - id % 10, talkIndex);//Get First Quest Talk
+        }
+        if (talkIndex == talkData[id - id & 10].Length)
+            return null;
+        else
+            return talkData[id - id % 10][talkIndex];
+    }
+    public Sprite GetPortrait(int id,int portraitIndex)
+    {
+        return portraitData[id+portraitIndex];
+    }
+}
+------------------------------------------------------------------------------------------------------------------------------------------------------------
